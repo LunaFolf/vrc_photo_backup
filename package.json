@@ -1,0 +1,25 @@
+{
+  "name": "vrc_photo_backup",
+  "scripts": {
+    "serve": "node dist/index.js",
+    "preserve": "rm -rf dist && tsc",
+    "prebuild": "rm -rf dist && tsc",
+    "postbuild": "./zipper.sh",
+    "build": "pkg --compress GZip dist/index.js -o 'vrc_photo_backup' -c 'pkg-config.json'"
+  },
+  "version": "1.0.0",
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.421.0",
+    "@types/luxon": "^3.3.2",
+    "@types/node": "^20.8.0",
+    "dotenv": "^16.3.1",
+    "luxon": "^3.4.3",
+    "pkg": "^5.8.1",
+    "prompt-sync": "^4.2.0",
+    "sharp": "^0.32.6"
+  },
+  "devDependencies": {
+    "ts-node-dev": "^2.0.0"
+  },
+  "type": "commonjs"
+}

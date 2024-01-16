@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "target": "ES2021",
+//    "moduleResolution": "NodeNext",
+    "module": "CommonJS",
+
+    "removeComments": true,
+    "preserveValueImports": false,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "alwaysStrict": true,
+    "outDir": "dist",
+    "sourceMap": true
+  }
+}

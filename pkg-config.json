@@ -1,0 +1,13 @@
+{
+  "targets": [
+    "latest-win",
+    "latest-linux"
+  ],
+  "scripts": [
+    "dist/utils/**/*.js"
+  ],
+  "assets": [
+    "node_modules/figlet/**/*.flf",
+    "node_modules/sharp/**/*"
+  ]
+}

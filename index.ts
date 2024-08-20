@@ -3,7 +3,7 @@ const prompt = require('prompt-sync')({sigint: true});
 
 import * as fs from 'fs'
 import {_Object, ListObjectsV2Command, PutObjectCommand, S3Client} from '@aws-sdk/client-s3'
-import {checkDirectoryForImages, processImages, isFileImage, resizeImages} from "./utils/files";
+import {checkDirectoryForImages, processImages, isFileImage, resizeImages, imageObj} from "./utils/files";
 import * as os from "os";
 
 const lastUsedPath = fs.existsSync('.lastUsedPath') ? fs.readFileSync('.lastUsedPath').toString() : ''
@@ -31,7 +31,7 @@ async function main () {
 
 
     console.log('getting contents of bucket')
-    const listObjsCommand = new ListObjectsV2Command({Bucket: 'cdn.folf.io'})
+    const listObjsCommand = new ListObjectsV2Command({Bucket: 'cdn.folf.io', Prefix: 'vrc_album/'})
 
     let bucketObjects: _Object[] = []
 
@@ -82,8 +82,7 @@ async function main () {
         Key: `vrc_album/${fileName}`,
         Body: fs.readFileSync(imagePath),
         ContentDisposition: 'inline',
-        ContentEncoding: 'gzip',
-        CacheControl: 'no-cache, no-store, must-revalidate',
+        CacheControl: 'max-age=3600, stale-while-revalidate=600, stale-if-error=86400',
         ContentType: isFileImage(fileName) ? `image/${fileExt}` : undefined
       }));
     };
@@ -99,11 +98,46 @@ async function main () {
     console.log('starting upload')
     await uploadImagesInSeries(imagesToUpload);
 
+    const cat = formattedImages.reverse().reduce((accumulator: void | imageObj[][], currentImage) => {
+      if (!accumulator) return accumulator;
+
+      let latestSeries = accumulator[Math.max(0, accumulator.length - 1)];
+      if (!latestSeries) latestSeries = accumulator[Math.max(0, accumulator.length - 1)] = [];
+
+      let lastImageInSeries = latestSeries[Math.max(0, latestSeries.length - 1)];
+      if (!lastImageInSeries) {
+        latestSeries.push(currentImage);
+      } else {
+        const diffMil = Math.abs(lastImageInSeries.date.getTime() - currentImage.date.getTime());
+        const diffHr = diffMil / (1000 * 3600);
+
+        if (diffHr < 2) {
+          latestSeries.push(currentImage);
+        } else {
+          const seriesLength = accumulator.push([])
+          accumulator[seriesLength - 1].push(currentImage);
+        }
+      }
+
+
+      return accumulator;
+    }, [])
+
     console.log('Uploading index.json')
     await client.send(new PutObjectCommand({
       Bucket: 'cdn.folf.io',
       Key: 'vrc_album/index.json',
-      Body: JSON.stringify(formattedImages.reverse()),
+      Body: JSON.stringify(formattedImages),
+      ContentType: 'application/json; charset=UTF-8',
+      CacheControl: 'no-cache, no-store, must-revalidate'
+    }))
+
+
+    console.log('Uploading series.json')
+    await client.send(new PutObjectCommand({
+      Bucket: 'cdn.folf.io',
+      Key: 'vrc_album/series.json',
+      Body: JSON.stringify(cat),
       ContentType: 'application/json; charset=UTF-8',
       CacheControl: 'no-cache, no-store, must-revalidate'
     }))

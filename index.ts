@@ -124,20 +124,39 @@ async function main () {
     }, [])
 
     console.log('Uploading index.json')
+
+    const uploadableIndex: { [key: imageObj["fileName"]]: any } = {}
+
+    formattedImages.forEach(image => {
+      uploadableIndex[image.fileName] = {
+        thumbName: image.thumbName,
+        date: image.date
+      }
+    })
+
     await client.send(new PutObjectCommand({
       Bucket: 'cdn.folf.io',
       Key: 'vrc_album/index.json',
-      Body: JSON.stringify(formattedImages),
+      Body: JSON.stringify(uploadableIndex),
       ContentType: 'application/json; charset=UTF-8',
       CacheControl: 'no-cache, no-store, must-revalidate'
     }))
+
+    const uploadableCat = []
+    // @ts-ignore
+    for (const category of cat) {
+          const uploadableCategory = category.map((image: imageObj) => {
+            return image.fileName
+          })
+          uploadableCat.push(uploadableCategory)
+        }
 
 
     console.log('Uploading series.json')
     await client.send(new PutObjectCommand({
       Bucket: 'cdn.folf.io',
       Key: 'vrc_album/series.json',
-      Body: JSON.stringify(cat),
+      Body: JSON.stringify(uploadableCat),
       ContentType: 'application/json; charset=UTF-8',
       CacheControl: 'no-cache, no-store, must-revalidate'
     }))
